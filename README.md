@@ -43,9 +43,16 @@ It supports **melody-conditioned (F0 contour)** and **score-conditioned (MIDI no
 
 ## 🎬 Demo Examples
 
+
 <div align="center">
-  <a href="https://github.com/user-attachments/assets/13306f10-3a29-46ba-bcef-d6308d05cbcc">Demo 1</a><br><br>
-  <a href="https://github.com/user-attachments/assets/2eb260fe-6f0b-408c-aab8-5b81ddddb284">Demo 2</a>
+
+<https://github.com/user-attachments/assets/13306f10-3a29-46ba-bcef-d6308d05cbcc">
+
+</div>
+<div align="center">
+
+<https://github.com/user-attachments/assets/2eb260fe-6f0b-408c-aab8-5b81ddddb284>
+
 </div>
 
 ---
