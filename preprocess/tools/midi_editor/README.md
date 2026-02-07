@@ -2,7 +2,7 @@
 
 [English](README.md) | [简体中文](README_CN.md)
 
-A full-featured web MIDI editor for singing voice production, similar to ACE-Studio and VOCALOID. It supports real-time drag editing of MIDI notes, lyric editing, audio waveform alignment, and importing/exporting MIDI files with lyrics.
+A full-featured web MIDI editor for singing voice preprocess. It supports real-time drag editing of MIDI notes, lyric editing, audio waveform alignment, and importing/exporting MIDI files with lyrics.
 
 ![MIDI Editor](https://img.shields.io/badge/React-19.2-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue) ![Vite](https://img.shields.io/badge/Vite-7.2-purple)
 
@@ -15,6 +15,7 @@ A full-featured web MIDI editor for singing voice production, similar to ACE-Stu
   - Move notes: drag note blocks to adjust position and pitch
   - Resize start: drag the left edge to adjust start time
   - Resize end: drag the right edge to adjust end time
+- **Quick pitch adjust**: Command/Ctrl + Up/Down to nudge selected notes
 - **Double-click to add**: Add new notes quickly in empty areas
 - **Piano key preview**: Click a key to audition the pitch
 
@@ -37,7 +38,7 @@ A full-featured web MIDI editor for singing voice production, similar to ACE-Stu
 
 - **Waveform display**: sync waveform with the MIDI timeline
 - **Formats**: MP3, WAV, OGG, FLAC, M4A, AAC
-- **Sync playback**: play audio and MIDI together with independent mute
+- **Sync playback**: play audio and MIDI together with independent volume control
 - **Click to seek**: click waveform or timeline to seek
 
 ### ⚠️ Overlap Detection
@@ -70,10 +71,6 @@ A full-featured web MIDI editor for singing voice production, similar to ACE-Stu
 ### Install
 
 ```bash
-# Clone
-git clone <repository-url>
-cd MIDI_Editor
-
 # Install dependencies
 npm install
 
@@ -127,6 +124,7 @@ npm run preview
 | ▶ / ⏸ | Play / Pause |
 | 2s ⏩ | Forward 2 seconds |
 | ⏭ | Go to end |
+| Selection | Play selected region |
 
 ## 🛠 Tech Stack
 
