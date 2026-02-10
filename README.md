@@ -5,12 +5,14 @@
     <b><em>SoulX-Singer: Towards High-Quality Zero-Shot Singing Voice Synthesis</em></b>
   </p>
   <p>
-    <img src="assets/soulx-logo.png" alt="SoulX-Logo" style="height:80px;">
+    <img src="assets/soulx-logo.png" alt="SoulX-Logo" style="height:85px;">
   </p>
   <p>
     <a href="https://soul-ailab.github.io/soulx-singer/"><img src="https://img.shields.io/badge/Demo-Page-lightgrey" alt="Demo Page"></a>
+    <a href="https://huggingface.co/spaces/Soul-AILab/SoulX-Singer"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20HF%20Space-Online%20Demo-ffda16" alt="HF Space Demo"></a>
     <a href="https://huggingface.co/Soul-AILab/SoulX-Singer"><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Model-blue' alt="HF-model"></a>
     <a href="assets/technical-report.pdf"><img src="https://img.shields.io/badge/Report-Github-red" alt="Technical Report"></a>
+    <a href="https://arxiv.org/abs/2602.07803"><img src="https://img.shields.io/badge/arXiv-2602.07803-b31b1b" alt="arXiv"></a>
     <a href="https://github.com/Soul-AILab/SoulX-Singer"><img src="https://img.shields.io/badge/License-Apache%202.0-blue" alt="License"></a>
   </p>
 </div>
@@ -59,6 +61,7 @@ It supports **melody-conditioned (F0 contour)** and **score-conditioned (MIDI no
 
 ## 📰 News
 
+- **[2026-02-09]** [SoulX-Singer Online Demo](https://huggingface.co/spaces/Soul-AILab/SoulX-Singer) is live on Hugging Face Spaces — try singing voice synthesis in your browser.
 - **[2026-02-08]** [MIDI Editor](https://huggingface.co/spaces/Soul-AILab/SoulX-Singer-Midi-Editor) is available on Hugging Face Spaces.
 - **[2026-02-06]** SoulX-Singer inference code and models released.
 
@@ -143,7 +146,7 @@ python webui.py
 
 - [x] 🖥️ Web-based UI for easy and interactive inference  
 - [x] 🌐 Online MIDI Editor deployment on Hugging Face Spaces
-- [ ] 🌐 Online demo deployment on Hugging Face Spaces  
+- [x] 🌐 Online demo deployment on Hugging Face Spaces  
 - [ ] 📊 Release the SoulX-Singer-Eval benchmark  
 - [ ] 📚 Comprehensive tutorials and usage documentation  
 
@@ -180,6 +183,23 @@ Please note:
 - ⚠️ The developers assume no liability for any misuse of this model.
 
 We advocate for the responsible development and use of AI and encourage the community to uphold safety and ethical principles. For ethics or misuse concerns, please contact us.
+
+
+## 📄 Citation
+
+If you use SoulX-Singer in your research, please cite:
+
+```bibtex
+@misc{soulxsinger,
+      title={SoulX-Singer: Towards High-Quality Zero-Shot Singing Voice Synthesis}, 
+      author={Jiale Qian and Hao Meng and Tian Zheng and Pengcheng Zhu and Haopeng Lin and Yuhang Dai and Hanke Xie and Wenxiao Cao and Ruixuan Shang and Jun Wu and Hongmei Liu and Hanlin Wen and Jian Zhao and Zhonglin Jiang and Yong Chen and Shunshun Yin and Ming Tao and Jianguo Wei and Lei Xie and Xinsheng Wang},
+      year={2026},
+      eprint={2602.07803},
+      archivePrefix={arXiv},
+      primaryClass={eess.AS},
+      url={https://arxiv.org/abs/2602.07803}, 
+}
+```
 
 
 ## 📬 Contact Us
