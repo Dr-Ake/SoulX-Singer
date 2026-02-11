@@ -6,6 +6,8 @@ import { AudioTrack } from './components/AudioTrack'
 import { useMidiStore } from './store/useMidiStore'
 import { exportMidi, importMidiFile } from './lib/midi'
 import type { TimeSignature } from './types'
+import type { Lang } from './i18n'
+import { getTranslations } from './i18n'
 import { BASE_GRID_SECOND_WIDTH, BASE_ROW_HEIGHT, LOW_NOTE, HIGH_NOTE } from './constants'
 import './App.css'
 
@@ -35,7 +37,10 @@ function App() {
     setPlayhead,
   } = useMidiStore()
 
-  const [status, setStatus] = useState('准备就绪')
+  const [lang, setLang] = useState<Lang>('zh')
+  const t = getTranslations(lang)
+
+  const [status, setStatus] = useState(t.ready)
   const [isPlaying, setIsPlaying] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('light')
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
@@ -67,6 +72,11 @@ function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme
   }, [theme])
+
+  // Update status text when language changes
+  useEffect(() => {
+    setStatus(t.ready)
+  }, [lang])
 
   // Sync audio volume - also trigger when audioUrl changes (new audio loaded)
   useEffect(() => {
@@ -218,7 +228,7 @@ function App() {
       }
     }
     setIsPlaying(true)
-    setStatus(hasSelection ? '选区回放中...' : '正在回放...')
+    setStatus(hasSelection ? t.selectionPlayback : t.playing)
 
     const tick = () => {
       const seconds =
@@ -230,7 +240,7 @@ function App() {
       if (endSeconds !== null && seconds >= endSeconds) {
         pausePlayback()
         seekToBeat(secondsToBeat(selectionStart!))
-        setStatus('选区播放完毕')
+        setStatus(t.selectionDone)
         return
       }
       
@@ -275,7 +285,7 @@ function App() {
   const handlePlayToggle = async () => {
     if (isPlaying) {
       pausePlayback()
-      setStatus('已暂停')
+      setStatus(t.paused)
     } else {
       await schedulePlayback()
     }
@@ -294,10 +304,10 @@ function App() {
       setTempo(snapshot.tempo)
       setTimeSignature(snapshot.timeSignature as TimeSignature)
       setPpq(snapshot.ppq)  // Preserve original ppq for accurate export
-      setStatus(`已载入 ${file.name}`)
+      setStatus(t.imported(file.name))
     } catch (error) {
       console.error(error)
-      setStatus('导入失败，请确认文件合法')
+      setStatus(t.importFailed)
     } finally {
       event.target.value = ''
     }
@@ -315,40 +325,20 @@ function App() {
     const isValidExtension = validExtensions.some(ext => fileName.endsWith(ext))
     
     if (!isValidType && !isValidExtension) {
-      setStatus(`不支持的文件格式，请选择音频文件（${validExtensions.join(', ')}）`)
+      setStatus(t.unsupportedFormat(validExtensions.join(', ')))
       event.target.value = ''
       return
     }
     
     const url = URL.createObjectURL(file)
     setAudioUrl(url)
-    setStatus(`已载入音频 ${file.name}`)
+    setStatus(t.audioImported(file.name))
     event.target.value = ''
   }
 
-  // Check for overlapping notes (any pitch)
-  const getOverlappingNotes = () => {
-    const overlapping: string[] = []
-    const sortedNotes = [...notes].sort((a, b) => a.start - b.start)
-    const EPSILON = 0.05 // Tolerance for floating point comparison
-    
-    for (let i = 0; i < sortedNotes.length; i++) {
-      for (let j = i + 1; j < sortedNotes.length; j++) {
-        const noteA = sortedNotes[i]
-        const noteB = sortedNotes[j]
-        const noteAEnd = noteA.start + noteA.duration
-        // If noteB starts at or after noteA ends (with tolerance), no overlap
-        if (noteB.start >= noteAEnd - EPSILON) break
-        // True overlap: noteB starts before noteA ends
-        if (!overlapping.includes(noteA.id)) overlapping.push(noteA.id)
-        if (!overlapping.includes(noteB.id)) overlapping.push(noteB.id)
-      }
-    }
-    return overlapping
-  }
-
-  // Auto-fix overlapping notes by trimming the first note to end where the second begins
-  const handleFixOverlaps = () => {
+  // Fix overlapping notes by trimming the first note to end where the second begins
+  // Returns the number of fixed overlaps
+  const fixOverlaps = (): number => {
     const sortedNotes = [...notes].sort((a, b) => a.start - b.start)
     let fixCount = 0
     
@@ -366,61 +356,101 @@ function App() {
       }
     }
     
+    return fixCount
+  }
+
+  // UI handler for fix overlaps button
+  const handleFixOverlaps = () => {
+    const fixCount = fixOverlaps()
     if (fixCount > 0) {
-      setStatus(`已修复 ${fixCount} 个重叠音符`)
+      setStatus(t.fixedOverlaps(fixCount))
     } else {
-      setStatus('没有检测到重叠音符')
+      setStatus(t.noOverlaps)
     }
   }
 
   const handleExport = () => {
-    const overlapping = getOverlappingNotes()
-    if (overlapping.length > 0) {
-      const confirm = window.confirm(
-        `检测到 ${overlapping.length} 个音符存在时间重叠（标红色的音符），这可能导致播放异常。\n\n是否仍要导出？`
-      )
-      if (!confirm) return
-    }
+    // Auto-fix overlaps before export
+    fixOverlaps()
     
-    const blob = exportMidi({ notes, tempo, timeSignature, ppq })
+    // Get the latest notes from store (after fix, zustand set is synchronous)
+    const latestNotes = useMidiStore.getState().notes
+    
+    const blob = exportMidi({ notes: latestNotes, tempo, timeSignature, ppq })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
     anchor.download = 'vocal-midi.mid'
     anchor.click()
     URL.revokeObjectURL(url)
-    setStatus('已导出包含歌词的 MIDI 文件')
+    setStatus(t.exported)
   }
 
+  const handleTranspose = (semitones: number) => {
+    if (semitones === 0 || !notes.length) return
+    for (const note of notes) {
+      const newMidi = Math.max(0, Math.min(127, note.midi + semitones))
+      updateNote(note.id, { midi: newMidi })
+    }
+    setStatus(t.transposed(semitones))
+  }
 
   return (
     <div className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">歌声 MIDI 编辑器</p>
-          <h1>Lyric-ready Piano Roll</h1>
-          <p className="muted">导入、拖拽、实时修改歌词并导出标准 MIDI。</p>
+          <p className="eyebrow">{t.eyebrow}</p>
+          <h1>{t.title}</h1>
+          <p className="muted">{t.subtitle}</p>
         </div>
         <div className="actions">
+          <button className="primary" onClick={handleImportClick}>
+            {t.importMidi}
+          </button>
+          <button className="primary" onClick={handleExport}>
+            {t.exportMidi}
+          </button>
+          <div className="transpose-group" title={t.transposeTooltip}>
+            <select
+              className="transpose-select"
+              value={0}
+              onChange={(e) => {
+                const val = Number(e.target.value)
+                if (val !== 0) handleTranspose(val)
+                e.target.value = '0'
+              }}
+            >
+              <option value={0}>{t.transpose}</option>
+              {Array.from({ length: 24 }, (_, i) => i - 12)
+                .filter(v => v !== 0)
+                .reverse()
+                .map(v => (
+                  <option key={v} value={v}>
+                    {v > 0 ? `+${v}` : v}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <button className="soft" onClick={handleFixOverlaps} title={t.fixOverlapsTooltip}>
+            {t.fixOverlaps}
+          </button>
           <button className="icon-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? (
-              <span className="icon" aria-label="切换到亮色">
+              <span className="icon" aria-label={t.switchToLight}>
                 ☀️
               </span>
             ) : (
-              <span className="icon" aria-label="切换到暗色">
+              <span className="icon" aria-label={t.switchToDark}>
                 🌙
               </span>
             )}
           </button>
-          <button className="primary" onClick={handleImportClick}>
-            导入 MIDI
-          </button>
-          <button className="primary" onClick={handleExport}>
-            导出含歌词 MIDI
-          </button>
-          <button className="soft" onClick={handleFixOverlaps} title="自动消除重叠：将重叠音符的音尾提前到下一个音的音头">
-            消除重叠
+          <button
+            className="icon-toggle"
+            onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+            title={lang === 'zh' ? 'Switch to English' : '切换到中文'}
+          >
+            <span className="lang-label">{lang === 'zh' ? 'EN' : '中'}</span>
           </button>
           <input ref={fileInputRef} type="file" accept=".mid,.midi" className="sr-only" onChange={handleFileChange} />
         </div>
@@ -429,7 +459,7 @@ function App() {
       <section className="audio-bar">
         <div className="audio-left">
           <button className="ghost" onClick={handleAudioImportClick}>
-            对齐音频导入
+            {t.importAudio}
           </button>
           <input
             ref={audioInputRef}
@@ -438,11 +468,11 @@ function App() {
             className="sr-only"
             onChange={handleAudioChange}
           />
-          <span className="audio-hint">导入后显示音频波形并与 MIDI 同步走带</span>
+          <span className="audio-hint">{t.audioHint}</span>
         </div>
         <div className="audio-right">
           <div className="volume-control">
-            <span className="volume-label">MIDI</span>
+            <span className="volume-label">{t.midiLabel}</span>
             <input
               type="range"
               min={0}
@@ -454,7 +484,7 @@ function App() {
             <span className="volume-value">{midiVolume}%</span>
           </div>
           <div className="volume-control">
-            <span className="volume-label">音频</span>
+            <span className="volume-label">{t.audioLabel}</span>
             <input
               type="range"
               min={0}
@@ -525,7 +555,7 @@ function App() {
         <aside className="panel-side">
           <div className="controls">
             <div className="toggle" style={{ justifyContent: 'space-between' }}>
-              <span>水平缩放</span>
+              <span>{t.horizontalZoom}</span>
               <input
                 type="range"
                 min={0.5}
@@ -538,7 +568,7 @@ function App() {
               <span style={{ width: 42, textAlign: 'right' }}>{horizontalZoom.toFixed(1)}x</span>
             </div>
             <div className="toggle" style={{ justifyContent: 'space-between' }}>
-              <span>垂直缩放</span>
+              <span>{t.verticalZoom}</span>
               <input
                 type="range"
                 min={0.6}
@@ -557,69 +587,59 @@ function App() {
                    setPlayhead(0)
                    seekToBeat(0)
                 }}
-                title="回到开头"
+                title={t.goToStart}
               >
                 ⏮
               </button>
               <button
                 className="soft"
                 onClick={() => seekBySeconds(-2)}
-                title="后退 2 秒"
+                title={t.back2s}
               >
-                ⏪ 2s
+                ⏪
               </button>
               <button 
                  className="primary" 
                  onClick={handlePlayToggle} 
                  disabled={!notes.length && !audioUrl}
-                 title={isPlaying ? "暂停" : (selectionStart !== null && selectionEnd !== null ? "播放选区" : "播放")}
+                 title={isPlaying ? t.pause : (selectionStart !== null && selectionEnd !== null ? t.playSelection : t.play)}
               >
                 {isPlaying ? '⏸' : '▶'}
               </button>
               <button
                 className="soft"
                 onClick={() => seekBySeconds(2)}
-                title="前进 2 秒"
+                title={t.forward2s}
               >
-                2s ⏩
+                ⏩
               </button>
               <button 
                  className="soft"
                  onClick={() => {
-                    // Logic to find end of song? Max note end or audio duration
                     const maxNoteEnd = notes.reduce((acc, n) => Math.max(acc, n.start + n.duration), 0)
                     seekToBeat(Math.max(secondsToBeat(audioDuration), maxNoteEnd))
                  }}
-                 title="回到结尾"
+                 title={t.goToEnd}
               >
                 ⏭
               </button>
-            </div>
-            <div className="selection-controls">
+              <span className="transport-divider" />
               <button
                 className={`soft selection-btn ${isSelectingRange ? 'active' : ''}`}
-                onClick={() => setIsSelectingRange(!isSelectingRange)}
-                title={isSelectingRange ? "退出选区模式" : "设置选区：在时间轴上拖拽选择播放范围"}
+                onClick={() => {
+                  if (isSelectingRange) {
+                    // Exiting selection mode - auto clear selection
+                    setIsSelectingRange(false)
+                    setSelectionStart(null)
+                    setSelectionEnd(null)
+                  } else {
+                    setIsSelectingRange(true)
+                  }
+                }}
+                title={isSelectingRange ? t.exitSelectMode : t.setRangeTooltip}
               >
-                {isSelectingRange ? '📍 选区中' : '📍 设选区'}
+                {isSelectingRange ? `📍 ${t.selectingRange}` : `📍 ${t.setRange}`}
               </button>
-              {selectionStart !== null && selectionEnd !== null && (
-                <>
-                  <span className="selection-info">
-                    {selectionStart.toFixed(1)}s - {selectionEnd.toFixed(1)}s
-                  </span>
-                  <button
-                    className="soft"
-                    onClick={() => {
-                      setSelectionStart(null)
-                      setSelectionEnd(null)
-                    }}
-                    title="清除选区"
-                  >
-                    ✕
-                  </button>
-                </>
-              )}
             </div>
             <div className="status">{status}</div>
           </div>
@@ -629,6 +649,7 @@ function App() {
               selectedId={selectedId} 
               tempo={tempo} 
               focusLyricId={focusLyricId}
+              lang={lang}
               onSelect={select} 
               onUpdate={updateNote}
               onFocusHandled={() => setFocusLyricId(null)}

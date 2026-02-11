@@ -36,3 +36,7 @@ data/
 outputs/
 deploy/
 .gradio/
+
+# midi editor
+node_modules/
+dist/

@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { NoteEvent } from '../types'
+import type { Lang } from '../i18n'
+import { getTranslations, tokenizeLyrics } from '../i18n'
 
 export type LyricTableProps = {
   notes: NoteEvent[]
   selectedId: string | null
   tempo: number
   focusLyricId: string | null
+  lang: Lang
   onSelect: (id: string | null) => void
   onUpdate: (id: string, patch: Partial<NoteEvent>) => void
   onScrollToNote?: (noteId: string) => void
@@ -28,6 +31,7 @@ function EditableCell({
   field,
   tempo,
   onConfirm,
+  confirmTitle,
   type = 'number',
   min,
   step
@@ -37,6 +41,7 @@ function EditableCell({
   field: 'midi' | 'start' | 'end'
   tempo: number
   onConfirm: (noteId: string, field: string, value: number) => void
+  confirmTitle?: string
   type?: string
   min?: number
   step?: number
@@ -119,7 +124,7 @@ function EditableCell({
             e.stopPropagation()
             handleConfirm()
           }}
-          title="确认修改 (Enter)"
+          title={confirmTitle}
         >
           ✓
         </button>
@@ -128,7 +133,8 @@ function EditableCell({
   )
 }
 
-export function LyricTable({ notes, selectedId, tempo, focusLyricId, onSelect, onUpdate, onScrollToNote, onFocusHandled }: LyricTableProps) {
+export function LyricTable({ notes, selectedId, tempo, focusLyricId, lang, onSelect, onUpdate, onScrollToNote, onFocusHandled }: LyricTableProps) {
+  const t = getTranslations(lang)
   const listRef = useRef<HTMLDivElement | null>(null)
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
   const sorted = useMemo(() => [...notes].sort((a, b) => a.start - b.start), [notes])
@@ -158,9 +164,11 @@ export function LyricTable({ notes, selectedId, tempo, focusLyricId, onSelect, o
   }, [focusLyricId, onFocusHandled])
 
   // Fill lyrics from selected note onwards
+  // Uses smart tokenizer: CJK chars -> one per note, English words -> one per note
   const handleBulkFill = (bulkText: string) => {
     if (!sorted.length) return
-    const chars = Array.from(bulkText.replace(/\s+/g, ''))
+    const tokens = tokenizeLyrics(bulkText)
+    if (!tokens.length) return
     
     let startIndex = 0
     if (selectedId) {
@@ -170,10 +178,10 @@ export function LyricTable({ notes, selectedId, tempo, focusLyricId, onSelect, o
       }
     }
     
-    let charIndex = 0
-    for (let i = startIndex; i < sorted.length && charIndex < chars.length; i++) {
-      onUpdate(sorted[i].id, { lyric: chars[charIndex] })
-      charIndex++
+    let tokenIndex = 0
+    for (let i = startIndex; i < sorted.length && tokenIndex < tokens.length; i++) {
+      onUpdate(sorted[i].id, { lyric: tokens[tokenIndex] })
+      tokenIndex++
     }
   }
 
@@ -206,7 +214,7 @@ export function LyricTable({ notes, selectedId, tempo, focusLyricId, onSelect, o
         <textarea
           className="lyric-bulk-input"
           rows={2}
-          placeholder={selectedId ? "从选中音符开始按字填充" : "输入歌词，点击按字填充"}
+          placeholder={selectedId ? t.fillPlaceholderSelected : t.fillPlaceholderDefault}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()
@@ -222,7 +230,9 @@ export function LyricTable({ notes, selectedId, tempo, focusLyricId, onSelect, o
             handleBulkFill(textarea.value)
           }}
         >
-          按字<br/>填充
+          {t.fillButton.split('\n').map((line, i) => (
+            <span key={i}>{line}{i === 0 && <br/>}</span>
+          ))}
         </button>
       </div>
       <div className="lyric-header" style={{ flexShrink: 0 }}>
@@ -249,7 +259,7 @@ export function LyricTable({ notes, selectedId, tempo, focusLyricId, onSelect, o
               }}
               className="lyric-input"
               value={note.lyric}
-              placeholder="Type lyric"
+              placeholder={t.lyricPlaceholder}
               onChange={(event) => onUpdate(note.id, { lyric: event.target.value })}
               onClick={(e) => e.stopPropagation()}
             />
@@ -259,6 +269,7 @@ export function LyricTable({ notes, selectedId, tempo, focusLyricId, onSelect, o
               field="midi"
               tempo={tempo}
               onConfirm={handleFieldConfirm}
+              confirmTitle={t.confirmEdit}
               min={0}
             />
             <EditableCell
@@ -267,6 +278,7 @@ export function LyricTable({ notes, selectedId, tempo, focusLyricId, onSelect, o
               field="start"
               tempo={tempo}
               onConfirm={handleFieldConfirm}
+              confirmTitle={t.confirmEdit}
               min={0}
               step={0.01}
             />
@@ -276,12 +288,13 @@ export function LyricTable({ notes, selectedId, tempo, focusLyricId, onSelect, o
               field="end"
               tempo={tempo}
               onConfirm={handleFieldConfirm}
+              confirmTitle={t.confirmEdit}
               min={0}
               step={0.01}
             />
           </div>
         ))}
-        {sorted.length === 0 && <div className="lyric-empty">Import或双击钢琴卷帘以添加音符</div>}
+        {sorted.length === 0 && <div className="lyric-empty">{t.emptyHint}</div>}
       </div>
     </div>
   )
