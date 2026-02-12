@@ -60,7 +60,7 @@ It supports **melody-conditioned (F0 contour)** and **score-conditioned (MIDI no
 ---
 
 ## 📰 News
-
+- **[2026-02-12]** [SoulX-Singer Eval Dataset](https://huggingface.co/datasets/Soul-AILab/SoulX-Singer-Eval-Dataset) is now available on Hugging Face Datasets.
 - **[2026-02-09]** [SoulX-Singer Online Demo](https://huggingface.co/spaces/Soul-AILab/SoulX-Singer) is live on Hugging Face Spaces — try singing voice synthesis in your browser.
 - **[2026-02-08]** [MIDI Editor](https://huggingface.co/spaces/Soul-AILab/SoulX-Singer-Midi-Editor) is available on Hugging Face Spaces.
 - **[2026-02-06]** SoulX-Singer inference code and models released.
