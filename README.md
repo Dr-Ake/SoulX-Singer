@@ -147,7 +147,8 @@ python webui.py
 - [x] 🖥️ Web-based UI for easy and interactive inference  
 - [x] 🌐 Online MIDI Editor deployment on Hugging Face Spaces
 - [x] 🌐 Online demo deployment on Hugging Face Spaces  
-- [ ] 📊 Release the SoulX-Singer-Eval benchmark  
+- [x] 📊 Release the SoulX-Singer-Eval benchmark  
+- [ ] Inference support for user-friendly MIDI-based input
 - [ ] 📚 Comprehensive tutorials and usage documentation  
 
 
